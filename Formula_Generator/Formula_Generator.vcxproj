@@ -124,6 +124,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Formula_Generator.cpp" />
+    <ClCompile Include="Generate polynomial.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Formula_Checker.h" />
