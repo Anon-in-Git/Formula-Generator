@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <sstream>
 #include <cmath>
+#include <fstream>
 
-// Fraction 类实现
+// Fraction 类实现（保持不变）
 Fraction::Fraction(int num, int den) : numerator(num), denominator(den), whole(0) {
     if (denominator == 0) denominator = 1;
     toProperFraction();
@@ -118,7 +119,10 @@ Fraction Fraction::operator/(const Fraction& other) const {
 }
 
 bool Fraction::operator==(const Fraction& other) const {
-    return toDouble() == other.toDouble();
+    long long num1 = static_cast<long long>(whole) * denominator + numerator;
+    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
+
+    return num1 * other.denominator == num2 * denominator;
 }
 
 bool Fraction::operator!=(const Fraction& other) const {
@@ -126,19 +130,22 @@ bool Fraction::operator!=(const Fraction& other) const {
 }
 
 bool Fraction::operator<(const Fraction& other) const {
-    return toDouble() < other.toDouble();
+    long long num1 = static_cast<long long>(whole) * denominator + numerator;
+    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
+
+    return num1 * other.denominator < num2 * denominator;
 }
 
 bool Fraction::operator<=(const Fraction& other) const {
-    return toDouble() <= other.toDouble();
+    return *this < other || *this == other;
 }
 
 bool Fraction::operator>(const Fraction& other) const {
-    return toDouble() > other.toDouble();
+    return !(*this <= other);
 }
 
 bool Fraction::operator>=(const Fraction& other) const {
-    return toDouble() >= other.toDouble();
+    return !(*this < other);
 }
 
 // ExpressionNode 实现
@@ -163,7 +170,6 @@ std::string ExpressionNode::toString() const {
     std::string leftStr = left->toString();
     std::string rightStr = right->toString();
 
-    // 根据运算符优先级决定是否加括号
     if (left->type == NodeType::OPERATOR &&
         getOperatorPriority(left->op) < getOperatorPriority(op)) {
         leftStr = "(" + leftStr + ")";
@@ -211,15 +217,15 @@ ExpressionGenerator::ExpressionGenerator(int r) : range(r) {
 
 Fraction ExpressionGenerator::generateRandomFraction() {
     std::uniform_int_distribution<int> dist(1, range - 1);
-    std::uniform_int_distribution<int> typeDist(0, 2); // 0: 整数, 1: 真分数, 2: 带分数
+    std::uniform_int_distribution<int> typeDist(0, 2);
 
     int type = typeDist(rng);
 
     switch (type) {
-    case 0: // 整数
+    case 0:
         return Fraction(dist(rng), 1);
 
-    case 1: // 真分数
+    case 1:
     {
         int num = dist(rng);
         int den = dist(rng);
@@ -227,9 +233,9 @@ Fraction ExpressionGenerator::generateRandomFraction() {
         return Fraction(num, den);
     }
 
-    case 2: // 带分数
+    case 2:
     {
-        int whole = dist(rng) / 2; // 整数部分小一些
+        int whole = dist(rng) / 2;
         int num = dist(rng);
         int den = dist(rng);
         if (num >= den) std::swap(num, den);
@@ -258,9 +264,8 @@ ExpressionNode* ExpressionGenerator::generateExpression(int operatorCount) {
     ExpressionNode* left = generateExpression(leftOps);
     ExpressionNode* right = generateExpression(rightOps);
 
-    // 确保减法和除法的合法性
+    // 合法性检查（仍然需要evaluate来验证）
     if (op == '-') {
-        // 确保左操作数 >= 右操作数
         while (left->evaluate() < right->evaluate()) {
             delete left;
             delete right;
@@ -269,7 +274,6 @@ ExpressionNode* ExpressionGenerator::generateExpression(int operatorCount) {
         }
     }
     else if (op == '/') {
-        // 确保结果是真分数
         Fraction result = left->evaluate() / right->evaluate();
         while (result.getWhole() != 0 || result.getNumerator() == 0) {
             delete left;
@@ -290,9 +294,7 @@ bool ExpressionGenerator::isEquivalent(ExpressionNode* expr1, ExpressionNode* ex
         return expr1->value == expr2->value;
     }
 
-    // 对于运算符节点，检查是否通过交换律等价
     if (expr1->op == expr2->op) {
-        // 对于加法和乘法，检查交换律
         if (expr1->op == '+' || expr1->op == '*') {
             return (isEquivalent(expr1->left, expr2->left) &&
                 isEquivalent(expr1->right, expr2->right)) ||
@@ -311,43 +313,40 @@ bool ExpressionGenerator::isEquivalent(ExpressionNode* expr1, ExpressionNode* ex
 void ExpressionGenerator::normalizeExpression(ExpressionNode* node) {
     if (node->type != NodeType::OPERATOR) return;
 
-    // 对加法和乘法进行规范化（左操作数 >= 右操作数）
-    if (node->op == '+' || node->op == '*') {
-        normalizeExpression(node->left);
-        normalizeExpression(node->right);
+    normalizeExpression(node->left);
+    normalizeExpression(node->right);
 
-        // 如果右操作数大于左操作数，交换
+    if (node->op == '+' || node->op == '*') {
         if (node->right->evaluate() > node->left->evaluate()) {
             std::swap(node->left, node->right);
         }
     }
 }
 
-std::pair<std::string, std::string> ExpressionGenerator::generateSingleExpression() {
+// 修改：只返回表达式字符串
+std::string ExpressionGenerator::generateSingleExpression() {
     std::uniform_int_distribution<int> opCountDist(1, 3);
     int opCount = opCountDist(rng);
 
     ExpressionNode* expr = generateExpression(opCount);
     normalizeExpression(expr);
 
-    std::string expressionStr = expr->toString();
-    std::string answerStr = expr->evaluate().toString();
+    std::string expressionStr = expr->toString() + " = ";
 
     delete expr;
 
-    return { expressionStr + " = ", answerStr };
+    return expressionStr;
 }
 
-std::vector<std::pair<std::string, std::string>>
-ExpressionGenerator::generateExpressions(int count) {
-    std::vector<std::pair<std::string, std::string>> expressions;
+// 修改：只返回表达式字符串向量
+std::vector<std::string> ExpressionGenerator::generateExpressions(int count) {
+    std::vector<std::string> expressions;
     std::vector<ExpressionNode*> generatedTrees;
 
     for (int i = 0; i < count; ++i) {
         bool isUnique = false;
         ExpressionNode* newExpr = nullptr;
 
-        // 尝试生成不重复的表达式
         for (int attempt = 0; attempt < 100 && !isUnique; ++attempt) {
             std::uniform_int_distribution<int> opCountDist(1, 3);
             int opCount = opCountDist(rng);
@@ -370,16 +369,12 @@ ExpressionGenerator::generateExpressions(int count) {
 
         if (isUnique && newExpr) {
             generatedTrees.push_back(newExpr->clone());
-            expressions.push_back({
-                newExpr->toString() + " = ",
-                newExpr->evaluate().toString()
-                });
+            expressions.push_back(newExpr->toString() + " = ");
         }
 
         delete newExpr;
     }
 
-    // 清理内存
     for (ExpressionNode* expr : generatedTrees) {
         delete expr;
     }
@@ -404,16 +399,18 @@ std::string fractionToString(const Fraction& frac) {
     return frac.toString();
 }
 
-Fraction stringToFraction(const std::string& str) {
-    // 简化的字符串转分数实现
-    // 实际项目中需要更完善的解析
-    if (str.find('/') != std::string::npos) {
-        size_t slashPos = str.find('/');
-        int num = std::stoi(str.substr(0, slashPos));
-        int den = std::stoi(str.substr(slashPos + 1));
-        return Fraction(num, den);
+// 文件操作函数 - 只写入表达式
+bool writeExpressionsToFile(const std::vector<std::string>& expressions,
+    const std::string& filename) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        return false;
     }
-    else {
-        return Fraction(std::stoi(str), 1);
+
+    for (const auto& expr : expressions) {
+        file << expr << std::endl;
     }
+
+    file.close();
+    return true;
 }

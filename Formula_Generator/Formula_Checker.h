@@ -64,7 +64,7 @@ struct ExpressionNode {
     ~ExpressionNode();
 
     std::string toString() const;
-    Fraction evaluate() const;
+    Fraction evaluate() const;  // 仍然保留用于合法性检查
     ExpressionNode* clone() const;
 };
 
@@ -82,18 +82,20 @@ private:
 public:
     ExpressionGenerator(int r);
 
-    // 生成单个表达式
-    std::pair<std::string, std::string> generateSingleExpression();
+    // 生成单个表达式（只返回表达式字符串）
+    std::string generateSingleExpression();
 
-    // 批量生成表达式
-    std::vector<std::pair<std::string, std::string>>
-        generateExpressions(int count);
+    // 批量生成表达式（只返回表达式字符串向量）
+    std::vector<std::string> generateExpressions(int count);
 };
 
 // 工具函数
 bool isOperator(char c);
 int getOperatorPriority(char op);
 std::string fractionToString(const Fraction& frac);
-Fraction stringToFraction(const std::string& str);
+
+// 文件操作函数
+bool writeExpressionsToFile(const std::vector<std::string>& expressions,
+    const std::string& filename);
 
 #endif
