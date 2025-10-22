@@ -4,6 +4,7 @@
 #include <sstream>
 #include <cmath>
 #include <fstream>
+#include <iostream>
 
 // Fraction 类实现（保持不变）
 Fraction::Fraction(int num, int den) : numerator(num), denominator(den), whole(0) {

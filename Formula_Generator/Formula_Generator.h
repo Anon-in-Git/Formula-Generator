@@ -98,6 +98,6 @@ std::string fractionToString(const Fraction& frac);
 bool writeExpressionsToFile(const std::vector<std::string>& expressions,
     const std::string& filename);
 
-void Formula_Generator(int count, int range)
+void Formula_Generator(int count, int range);
 
 #endif
