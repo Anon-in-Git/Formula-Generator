@@ -12,8 +12,13 @@ typedef std::pair<int, int> PII;
 class FC {
 public:
     static int mygcd(int a, int b) {
-        if (a > b)
-            std::swap(a, b);
+		a = std::abs(a);
+		b = std::abs(b);
+        if (a > b) {
+            int t = a;
+			a = b;
+			b = t;
+        }
         if(a == 0)
 			return b;
 		return mygcd(b % a, a);
@@ -55,19 +60,19 @@ public:
             if (mydata[i] == -6)
                 cnt--;
             if (cnt < 0) {
-                std::cout << "[Error][-e]The NO." << idx + 1 << " exercise includes an ILLEGAL balanced bracket sequence." << std::endl << std::endl;
+                std::cout << "[Error][-e/-a]The NO." << idx + 1 << " exercise includes an ILLEGAL balanced bracket sequence." << std::endl << std::endl;
                 system("pause");
                 return false;
             }
 
             if (mydata[i] <= -1 && mydata[i] >= -4 && (i + 1 >= mydata.size() || (mydata[i + 1] <= -1 && mydata[i + 1] >= -4))) {
-                std::cout << "[Error][-e]The NO." << idx + 1 << " exercise includes illegal arithmetic operator." << std::endl << std::endl;
+                std::cout << "[Error][-e/-a]The NO." << idx + 1 << " exercise includes illegal arithmetic operator." << std::endl << std::endl;
                 system("pause");
                 return false;
             }
 
             if (mydata[i] == -4 && mydata[i + 1] == 0) {
-                std::cout << "[Error][-e]The NO." << idx + 1 << " exercise involves division by zero." << std::endl << std::endl;
+                std::cout << "[Error][-e/-a]The NO." << idx + 1 << " exercise involves division by zero." << std::endl << std::endl;
                 system("pause");
                 return false;
             }
@@ -85,7 +90,7 @@ public:
                     i += 3;
                 }
                 else {
-                    std::cout << "[Error][-e]The NO." << idx + 1 << " exercise includes ILLEGAL arithmetic operator." << std::endl << std::endl;
+                    std::cout << "[Error][-e/-a]The NO." << idx + 1 << " exercise includes ILLEGAL arithmetic operator." << std::endl << std::endl;
                     system("pause");
                     return false;
                 }
@@ -93,7 +98,7 @@ public:
         }
 
         if (cnt != 0) {
-            std::cout << "[Error][-e]The NO." << idx + 1 << " exercise includes an ILLEGAL balanced bracket sequence." << std::endl << std::endl;
+            std::cout << "[Error][-e/-a]The NO." << idx + 1 << " exercise includes an ILLEGAL balanced bracket sequence." << std::endl << std::endl;
             system("pause");
             return false;
         }

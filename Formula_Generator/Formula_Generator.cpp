@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-	cout << n << " " << maxn << " " << File_Ex << " " << File_Ans << endl;
+	//cout << n << " " << maxn << " " << File_Ex << " " << File_Ans << endl;
 
     if (n > 0 && maxn > 0) {
         Formula_Generator(n,maxn);
