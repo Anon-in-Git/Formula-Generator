@@ -45,6 +45,9 @@ public:
     int getDenominator() const { return denominator; }
     int getWhole() const { return whole; }
     bool isZero() const { return numerator == 0 && whole == 0; }
+
+	// 辅助函数
+    int64_t computeGCD(int64_t a, int64_t b) const;
 };
 
 // 表达式节点类型
@@ -97,7 +100,7 @@ public:
 bool isOperator(char c);
 int getOperatorPriority(char op);
 std::string fractionToString(const Fraction& frac);
-int64_t computeGCD(int64_t a, int64_t b);
+
 
 // 文件操作函数 - 分别写入题目和答案
 bool writeExercisesToFile(const std::vector<std::pair<std::string, std::string>>& expressions,
