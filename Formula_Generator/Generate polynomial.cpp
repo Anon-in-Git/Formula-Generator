@@ -1,4 +1,4 @@
-#include "expression_generator.h"
+#include "Formula_Generator.h"
 #include <random>
 #include <algorithm>
 #include <sstream>
@@ -429,6 +429,7 @@ bool writeExercisesToFile(const std::vector<std::pair<std::string, std::string>>
     int cnt = 1;
     for (const auto& expr : expressions) {
         file<< cnt << '.' << expr.first << std::endl;  // 只写入表达式部分
+        cnt++;
     }
 
     file.close();
@@ -443,8 +444,10 @@ bool writeAnswersToFile(const std::vector<std::pair<std::string, std::string>>& 
         return false;
     }
 
+    int cnt = 1;
     for (const auto& expr : expressions) {
         file << cnt << '.' << expr.second << std::endl;  // 只写入答案部分
+        cnt++;
     }
 
     file.close();
@@ -456,14 +459,14 @@ void Formula_Generator(int count, int range) {
     auto expressions = generator.generateExpressions(count);
     std::string expressionfile = "Exercises.txt";
 	std::string answerfile = "Answers.txt";
-    if (writeExpressionsToFile(expressions, expressionfile)) {
-        std::cout << "Expressions successfully written to " << filename << std::endl;
+    if (writeExercisesToFile(expressions, expressionfile)) {
+        std::cout << "Expressions successfully written to " << expressionfile << std::endl;
     }
     else {
         std::cout << "Failed to write expressions to file." << std::endl;
 	}
     if (writeAnswersToFile(expressions, answerfile)) {
-        std::cout << "Answers successfully written to " << filename << std::endl;
+        std::cout << "Answers successfully written to " << answerfile << std::endl;
     }
     else {
         std::cout << "Failed to write answers to file." << std::endl;

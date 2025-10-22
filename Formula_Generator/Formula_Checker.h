@@ -5,6 +5,8 @@
 #include<vector>
 #include<fstream>
 #include<iostream>
+#include<utility>
+
 typedef std::pair<int, int> PII;
 
 class FC {

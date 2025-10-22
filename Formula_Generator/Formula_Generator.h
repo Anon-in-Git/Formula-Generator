@@ -1,10 +1,11 @@
-#ifndef EXPRESSION_GENERATOR_H
-#define EXPRESSION_GENERATOR_H
+#ifndef FORMULA_GENERATOR_H
+#define FORMULA_GENERATOR_H
 
 #include <string>
 #include <vector>
 #include <utility>
 #include <random>
+#include <iostream>
 
 // 分数类
 class Fraction {
@@ -17,10 +18,11 @@ private:
     void toProperFraction(); // 转换为真分数形式
 
 public:
-    Fraction(int num = 0, int den = 1);
-    Fraction(int w, int num, int den);
+    // 构造函数
+    Fraction(int numerator = 0, int denominator = 1);
+    Fraction(int whole, int numerator, int denominator);
 
-    // 获取各种表示
+    // 字符串表示和转换
     std::string toString() const;
     double toDouble() const;
 
@@ -38,7 +40,7 @@ public:
     bool operator>(const Fraction& other) const;
     bool operator>=(const Fraction& other) const;
 
-    // 获取分量
+    // 访问器
     int getNumerator() const { return numerator; }
     int getDenominator() const { return denominator; }
     int getWhole() const { return whole; }
@@ -59,12 +61,14 @@ struct ExpressionNode {
     ExpressionNode* left;
     ExpressionNode* right;
 
-    ExpressionNode(const Fraction& val);
-    ExpressionNode(char operation, ExpressionNode* l, ExpressionNode* r);
+    // 构造函数和析构函数
+    ExpressionNode(const Fraction& value);
+    ExpressionNode(char operation, ExpressionNode* left, ExpressionNode* right);
     ~ExpressionNode();
 
+    // 核心方法
     std::string toString() const;
-    Fraction evaluate() const;  // 仍然保留用于合法性检查
+    Fraction evaluate() const;
     ExpressionNode* clone() const;
 };
 
@@ -74,19 +78,19 @@ private:
     int range;
     std::mt19937 rng;
 
+    // 私有方法
     Fraction generateRandomFraction();
     ExpressionNode* generateExpression(int operatorCount);
     bool isEquivalent(ExpressionNode* expr1, ExpressionNode* expr2);
     void normalizeExpression(ExpressionNode* node);
 
 public:
-    ExpressionGenerator(int r);
+    // 构造函数
+    ExpressionGenerator(int range);
 
-    // 生成单个表达式（只返回表达式字符串）
-    std::string generateSingleExpression();
-
-    // 批量生成表达式（只返回表达式字符串向量）
-    std::vector<std::string> generateExpressions(int count);
+    // 公有接口 - 返回表达式和答案的对
+    std::pair<std::string, std::string> generateSingleExpression();
+    std::vector<std::pair<std::string, std::string>> generateExpressions(int count);
 };
 
 // 工具函数
@@ -94,10 +98,12 @@ bool isOperator(char c);
 int getOperatorPriority(char op);
 std::string fractionToString(const Fraction& frac);
 
-// 文件操作函数
-bool writeExpressionsToFile(const std::vector<std::string>& expressions,
+// 文件操作函数 - 分别写入题目和答案
+bool writeExercisesToFile(const std::vector<std::pair<std::string, std::string>>& expressions,
+    const std::string& filename);
+bool writeAnswersToFile(const std::vector<std::pair<std::string, std::string>>& expressions,
     const std::string& filename);
 
-void Formula_Generator(int count, int range);
+void Formula_Generator(int count, int range); // 生成指定数量和范围的算术表达式并写入文件
 
 #endif
