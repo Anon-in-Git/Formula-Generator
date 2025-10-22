@@ -42,12 +42,31 @@ void Fraction::simplify() {
 }
 
 void Fraction::toProperFraction() {
+    if (denominator < 0) {
+        numerator = -numerator;
+        denominator = -denominator;
+    }
+
+    // 处理分子大于等于分母的情况
     if (numerator >= denominator) {
         whole += numerator / denominator;
         numerator %= denominator;
     }
 
+    // 处理分子为负数的情况
     if (numerator < 0) {
+        if (whole > 0) {
+            whole -= 1;
+            numerator += denominator;
+        }
+        else {
+            // 如果整数部分为0且分子为负，保持为假分数形式
+            // 或者可以转换为带负号的带分数
+        }
+    }
+
+    // 确保分数部分总是正的
+    if (numerator < 0 && whole != 0) {
         whole -= 1;
         numerator += denominator;
     }
@@ -56,18 +75,38 @@ void Fraction::toProperFraction() {
 std::string Fraction::toString() const {
     std::stringstream ss;
 
-    if (whole != 0) {
-        ss << whole;
-        if (numerator != 0) {
-            ss << "'" << numerator << "/" << denominator;
+    // 处理负数的正确表示
+    if (whole < 0 || numerator < 0) {
+        if (whole == 0 && numerator < 0) {
+            // 纯负分数
+            ss << "-" << std::abs(numerator) << "/" << denominator;
+        }
+        else if (whole < 0 && numerator == 0) {
+            // 负整数
+            ss << whole;
+        }
+        else if (whole < 0 && numerator > 0) {
+            // 负带分数 - 这是不正确的表示，需要转换
+            // 将 -a'b/c 转换为 -(a'b/c)
+            int totalNumerator = std::abs(whole) * denominator + numerator;
+            ss << "-" << totalNumerator << "/" << denominator;
         }
     }
     else {
-        if (numerator == 0) {
-            ss << "0";
+        // 正数的正常表示
+        if (whole != 0) {
+            ss << whole;
+            if (numerator != 0) {
+                ss << "'" << numerator << "/" << denominator;
+            }
         }
         else {
-            ss << numerator << "/" << denominator;
+            if (numerator == 0) {
+                ss << "0";
+            }
+            else {
+                ss << numerator << "/" << denominator;
+            }
         }
     }
 
@@ -172,6 +211,23 @@ std::string ExpressionNode::toString() const {
 
     std::string leftStr = left->toString();
     std::string rightStr = right->toString();
+
+    // 为分数表达式添加括号，避免歧义
+    bool leftIsFraction = (left->type == NodeType::NUMBER &&
+        (left->value.toString().find('/') != std::string::npos ||
+            left->value.toString().find('\'') != std::string::npos));
+
+    bool rightIsFraction = (right->type == NodeType::NUMBER &&
+        (right->value.toString().find('/') != std::string::npos ||
+            right->value.toString().find('\'') != std::string::npos));
+
+    // 如果当前是除法运算符，且操作数是分数，需要加括号
+    if (op == '/' && leftIsFraction) {
+        leftStr = "(" + leftStr + ")";
+    }
+    if (op == '/' && rightIsFraction) {
+        rightStr = "(" + rightStr + ")";
+    }
 
     // 根据运算符优先级决定是否加括号
     if (left->type == NodeType::OPERATOR &&
