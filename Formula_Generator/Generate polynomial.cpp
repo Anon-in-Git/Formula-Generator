@@ -10,14 +10,14 @@
 
 Fraction::Fraction(int num, int den) : numerator(num), denominator(den), whole(0) {
     if (denominator == 0) denominator = 1;
+    toProperFraction();
     simplify();
-    toProperFraction();  // 先简化再转换为真分数
 }
 
 Fraction::Fraction(int w, int num, int den) : numerator(num), denominator(den), whole(w) {
     if (denominator == 0) denominator = 1;
+    toProperFraction();
     simplify();
-    toProperFraction();  // 先简化再转换为真分数
 }
 
 void Fraction::simplify() {
@@ -48,44 +48,27 @@ void Fraction::toProperFraction() {
         denominator = -denominator;
     }
 
-    // 如果分子为0，直接返回
-    if (numerator == 0) {
-        whole = 0;
-        return;
-    }
-
-    while (numerator < 0) {
-		whole -= 1;
-		numerator += denominator;
-    }
-
     // 处理分子绝对值大于等于分母的情况
-    if (numerator >= denominator) {
+    if (std::abs(numerator) >= denominator) {
         int addToWhole = numerator / denominator;
         whole += addToWhole;
-        numerator = std::abs(numerator) % denominator;
+        numerator = numerator % denominator;
 
-        // 如果分子为0，重置分母为1
-        if (numerator == 0) {
-            denominator = 1;
+        // 确保分子为正
+        if (numerator < 0) {
+            numerator += denominator;
+            whole -= 1;
         }
     }
 
-    // 确保整数部分和分数部分的符号一致
-    if (whole != 0 && numerator != 0) {
-        if ((whole > 0 && numerator < 0) || (whole < 0 && numerator > 0)) {
-            // 这种情况不应该出现，如果出现则调整
-            if (whole > 0) {
-                whole -= 1;
-                numerator += denominator;
-            }
-            else {
-                whole += 1;
-                numerator -= denominator;
-            }
+    // 如果整数部分为负，分子应该为正
+    if (whole < 0 && numerator > 0) {
+        // 这种情况需要调整
+        if (whole != 0) {
+            whole += 1;
+            numerator -= denominator;
         }
     }
-    
 }
 
 std::string Fraction::toString() const {
@@ -103,7 +86,8 @@ std::string Fraction::toString() const {
 
     // 处理整数的显示
     if (whole != 0) {
-        ss << std::abs(whole);  // 显示绝对值的整数部分
+        // 如果是负数，whole 已经是负数，我们显示其绝对值
+        ss << (isNegative ? -whole : whole);
         if (numerator != 0) {
             ss << "'" << numerator << "/" << denominator;
         }
@@ -113,7 +97,8 @@ std::string Fraction::toString() const {
             ss << "0";
         }
         else {
-            ss << std::abs(numerator) << "/" << denominator;
+            // 如果是负数，显示负号，但分子显示绝对值
+            ss << (isNegative ? "-" : "") << std::abs(numerator) << "/" << denominator;
         }
     }
 
@@ -130,45 +115,69 @@ double Fraction::toDouble() const {
 }
 
 Fraction Fraction::operator+(const Fraction& other) const {
-    int num1 = whole * denominator + numerator;
-    int num2 = other.whole * other.denominator + other.numerator;
+    // 转换为假分数进行计算
+    long long num1 = static_cast<long long>(whole) * denominator + numerator;
+    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
 
-    int new_num = num1 * other.denominator + num2 * denominator;
-    int new_den = denominator * other.denominator;
+    long long new_num = num1 * other.denominator + num2 * denominator;
+    long long new_den = static_cast<long long>(denominator) * other.denominator;
 
-    return Fraction(new_num, new_den);
+    // 防止溢出
+    if (new_num > INT_MAX || new_num < INT_MIN || new_den > INT_MAX) {
+        return Fraction(0, 1); // 返回默认值
+    }
+
+    return Fraction(static_cast<int>(new_num), static_cast<int>(new_den));
 }
 
 Fraction Fraction::operator-(const Fraction& other) const {
-    int num1 = whole * denominator + numerator;
-    int num2 = other.whole * other.denominator + other.numerator;
+    // 转换为假分数进行计算
+    long long num1 = static_cast<long long>(whole) * denominator + numerator;
+    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
 
-    int new_num = num1 * other.denominator - num2 * denominator;
-    int new_den = denominator * other.denominator;
+    long long new_num = num1 * other.denominator - num2 * denominator;
+    long long new_den = static_cast<long long>(denominator) * other.denominator;
 
-    return Fraction(new_num, new_den);
+    // 防止溢出
+    if (new_num > INT_MAX || new_num < INT_MIN || new_den > INT_MAX) {
+        return Fraction(0, 1); // 返回默认值
+    }
+
+    return Fraction(static_cast<int>(new_num), static_cast<int>(new_den));
 }
 
 Fraction Fraction::operator*(const Fraction& other) const {
-    int num1 = whole * denominator + numerator;
-    int num2 = other.whole * other.denominator + other.numerator;
+    // 转换为假分数进行计算
+    long long num1 = static_cast<long long>(whole) * denominator + numerator;
+    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
 
-    int new_num = num1 * num2;
-    int new_den = denominator * other.denominator;
+    long long new_num = num1 * num2;
+    long long new_den = static_cast<long long>(denominator) * other.denominator;
 
-    return Fraction(new_num, new_den);
+    // 防止溢出
+    if (new_num > INT_MAX || new_num < INT_MIN || new_den > INT_MAX) {
+        return Fraction(0, 1); // 返回默认值
+    }
+
+    return Fraction(static_cast<int>(new_num), static_cast<int>(new_den));
 }
 
 Fraction Fraction::operator/(const Fraction& other) const {
-    int num1 = whole * denominator + numerator;
-    int num2 = other.whole * other.denominator + other.numerator;
+    // 转换为假分数进行计算
+    long long num1 = static_cast<long long>(whole) * denominator + numerator;
+    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
 
     if (num2 == 0) return Fraction(0, 1);
 
-    int new_num = num1 * other.denominator;
-    int new_den = denominator * num2;
+    long long new_num = num1 * other.denominator;
+    long long new_den = static_cast<long long>(denominator) * num2;
 
-    return Fraction(new_num, new_den);
+    // 防止溢出
+    if (new_num > INT_MAX || new_num < INT_MIN || new_den > INT_MAX) {
+        return Fraction(0, 1); // 返回默认值
+    }
+
+    return Fraction(static_cast<int>(new_num), static_cast<int>(new_den));
 }
 
 bool Fraction::operator==(const Fraction& other) const {
@@ -218,8 +227,6 @@ ExpressionNode::~ExpressionNode() {
 
 std::string ExpressionNode::toString() const {
     if (type == NodeType::NUMBER) {
-        // 对于数字节点，直接返回其字符串表示
-        // Fraction::toString() 已经会为负数添加括号
         return value.toString();
     }
 
@@ -235,7 +242,7 @@ std::string ExpressionNode::toString() const {
         (right->value.toString().find('/') != std::string::npos ||
             right->value.toString().find('\'') != std::string::npos));
 
-    // 如果操作数是负数（以负号开头），需要加括号
+    // 如果操作数是负数（以括号开头），需要加括号
     bool leftIsNegative = (left->type == NodeType::NUMBER && left->value.toDouble() < 0);
     bool rightIsNegative = (right->type == NodeType::NUMBER && right->value.toDouble() < 0);
 
