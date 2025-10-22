@@ -1,12 +1,12 @@
-#include "Formula_Generator.h"
+#include "expression_generator.h"
 #include <random>
 #include <algorithm>
 #include <sstream>
 #include <cmath>
 #include <fstream>
-#include <iostream>
 
-// Fraction 类实现（保持不变）
+// ==================== Fraction 类实现 ====================
+
 Fraction::Fraction(int num, int den) : numerator(num), denominator(den), whole(0) {
     if (denominator == 0) denominator = 1;
     toProperFraction();
@@ -28,6 +28,7 @@ void Fraction::simplify() {
     int a = std::abs(numerator);
     int b = denominator;
 
+    // 欧几里得算法求最大公约数
     while (b != 0) {
         int temp = b;
         b = a % b;
@@ -149,7 +150,8 @@ bool Fraction::operator>=(const Fraction& other) const {
     return !(*this < other);
 }
 
-// ExpressionNode 实现
+// ==================== ExpressionNode 类实现 ====================
+
 ExpressionNode::ExpressionNode(const Fraction& val)
     : type(NodeType::NUMBER), value(val), op('\0'), left(nullptr), right(nullptr) {
 }
@@ -171,6 +173,7 @@ std::string ExpressionNode::toString() const {
     std::string leftStr = left->toString();
     std::string rightStr = right->toString();
 
+    // 根据运算符优先级决定是否加括号
     if (left->type == NodeType::OPERATOR &&
         getOperatorPriority(left->op) < getOperatorPriority(op)) {
         leftStr = "(" + leftStr + ")";
@@ -181,7 +184,7 @@ std::string ExpressionNode::toString() const {
         rightStr = "(" + rightStr + ")";
     }
 
-    return leftStr + " " + std::string(1, op) + " " + rightStr;
+    return leftStr + " " + op + " " + rightStr;
 }
 
 Fraction ExpressionNode::evaluate() const {
@@ -210,7 +213,8 @@ ExpressionNode* ExpressionNode::clone() const {
     }
 }
 
-// ExpressionGenerator 实现
+// ==================== ExpressionGenerator 类实现 ====================
+
 ExpressionGenerator::ExpressionGenerator(int r) : range(r) {
     std::random_device rd;
     rng.seed(rd());
@@ -218,15 +222,15 @@ ExpressionGenerator::ExpressionGenerator(int r) : range(r) {
 
 Fraction ExpressionGenerator::generateRandomFraction() {
     std::uniform_int_distribution<int> dist(1, range - 1);
-    std::uniform_int_distribution<int> typeDist(0, 2);
+    std::uniform_int_distribution<int> typeDist(0, 2); // 0: 整数, 1: 真分数, 2: 带分数
 
     int type = typeDist(rng);
 
     switch (type) {
-    case 0:
+    case 0: // 整数
         return Fraction(dist(rng), 1);
 
-    case 1:
+    case 1: // 真分数
     {
         int num = dist(rng);
         int den = dist(rng);
@@ -234,9 +238,9 @@ Fraction ExpressionGenerator::generateRandomFraction() {
         return Fraction(num, den);
     }
 
-    case 2:
+    case 2: // 带分数
     {
-        int whole = dist(rng) / 2;
+        int whole = dist(rng) / 2; // 整数部分小一些
         int num = dist(rng);
         int den = dist(rng);
         if (num >= den) std::swap(num, den);
@@ -265,7 +269,7 @@ ExpressionNode* ExpressionGenerator::generateExpression(int operatorCount) {
     ExpressionNode* left = generateExpression(leftOps);
     ExpressionNode* right = generateExpression(rightOps);
 
-    // 合法性检查（仍然需要evaluate来验证）
+    // 合法性检查：减法不产生负数，除法结果为真分数
     if (op == '-') {
         while (left->evaluate() < right->evaluate()) {
             delete left;
@@ -296,6 +300,7 @@ bool ExpressionGenerator::isEquivalent(ExpressionNode* expr1, ExpressionNode* ex
     }
 
     if (expr1->op == expr2->op) {
+        // 对于加法和乘法，检查交换律
         if (expr1->op == '+' || expr1->op == '*') {
             return (isEquivalent(expr1->left, expr2->left) &&
                 isEquivalent(expr1->right, expr2->right)) ||
@@ -303,6 +308,7 @@ bool ExpressionGenerator::isEquivalent(ExpressionNode* expr1, ExpressionNode* ex
                     isEquivalent(expr1->right, expr2->left));
         }
         else {
+            // 减法和除法不满足交换律
             return isEquivalent(expr1->left, expr2->left) &&
                 isEquivalent(expr1->right, expr2->right);
         }
@@ -314,9 +320,11 @@ bool ExpressionGenerator::isEquivalent(ExpressionNode* expr1, ExpressionNode* ex
 void ExpressionGenerator::normalizeExpression(ExpressionNode* node) {
     if (node->type != NodeType::OPERATOR) return;
 
+    // 递归规范化子树
     normalizeExpression(node->left);
     normalizeExpression(node->right);
 
+    // 对加法和乘法进行规范化（左操作数 >= 右操作数）
     if (node->op == '+' || node->op == '*') {
         if (node->right->evaluate() > node->left->evaluate()) {
             std::swap(node->left, node->right);
@@ -324,8 +332,8 @@ void ExpressionGenerator::normalizeExpression(ExpressionNode* node) {
     }
 }
 
-// 修改：只返回表达式字符串
-std::string ExpressionGenerator::generateSingleExpression() {
+// 修改：返回表达式和答案的对
+std::pair<std::string, std::string> ExpressionGenerator::generateSingleExpression() {
     std::uniform_int_distribution<int> opCountDist(1, 3);
     int opCount = opCountDist(rng);
 
@@ -333,21 +341,23 @@ std::string ExpressionGenerator::generateSingleExpression() {
     normalizeExpression(expr);
 
     std::string expressionStr = expr->toString() + " = ";
+    std::string answerStr = expr->evaluate().toString();
 
     delete expr;
 
-    return expressionStr;
+    return { expressionStr, answerStr };
 }
 
-// 修改：只返回表达式字符串向量
-std::vector<std::string> ExpressionGenerator::generateExpressions(int count) {
-    std::vector<std::string> expressions;
+// 修改：返回表达式和答案对的向量
+std::vector<std::pair<std::string, std::string>> ExpressionGenerator::generateExpressions(int count) {
+    std::vector<std::pair<std::string, std::string>> expressions;
     std::vector<ExpressionNode*> generatedTrees;
 
     for (int i = 0; i < count; ++i) {
         bool isUnique = false;
         ExpressionNode* newExpr = nullptr;
 
+        // 尝试生成唯一表达式（最多100次）
         for (int attempt = 0; attempt < 100 && !isUnique; ++attempt) {
             std::uniform_int_distribution<int> opCountDist(1, 3);
             int opCount = opCountDist(rng);
@@ -355,6 +365,7 @@ std::vector<std::string> ExpressionGenerator::generateExpressions(int count) {
             newExpr = generateExpression(opCount);
             normalizeExpression(newExpr);
 
+            // 检查是否与已生成的表达式等价
             isUnique = true;
             for (ExpressionNode* existingExpr : generatedTrees) {
                 if (isEquivalent(newExpr, existingExpr)) {
@@ -368,14 +379,20 @@ std::vector<std::string> ExpressionGenerator::generateExpressions(int count) {
             }
         }
 
+        // 成功生成唯一表达式
         if (isUnique && newExpr) {
             generatedTrees.push_back(newExpr->clone());
-            expressions.push_back(newExpr->toString() + " = ");
+            // 存储表达式和答案的对
+            expressions.push_back({
+                newExpr->toString() + " = ",
+                newExpr->evaluate().toString()
+                });
         }
 
         delete newExpr;
     }
 
+    // 清理内存
     for (ExpressionNode* expr : generatedTrees) {
         delete expr;
     }
@@ -383,7 +400,8 @@ std::vector<std::string> ExpressionGenerator::generateExpressions(int count) {
     return expressions;
 }
 
-// 工具函数实现
+// ==================== 工具函数实现 ====================
+
 bool isOperator(char c) {
     return c == '+' || c == '-' || c == '*' || c == '/';
 }
@@ -400,18 +418,33 @@ std::string fractionToString(const Fraction& frac) {
     return frac.toString();
 }
 
-// 文件操作函数 - 只写入表达式
-bool writeExpressionsToFile(const std::vector<std::string>& expressions,
+// 文件操作函数 - 写入题目到文件
+bool writeExercisesToFile(const std::vector<std::pair<std::string, std::string>>& expressions,
+    const std::string& filename) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        return false;
+    }
+    
+    int cnt = 1;
+    for (const auto& expr : expressions) {
+        file<< cnt << '.' << expr.first << std::endl;  // 只写入表达式部分
+    }
+
+    file.close();
+    return true;
+}
+
+// 文件操作函数 - 写入答案到文件
+bool writeAnswersToFile(const std::vector<std::pair<std::string, std::string>>& expressions,
     const std::string& filename) {
     std::ofstream file(filename);
     if (!file.is_open()) {
         return false;
     }
 
-    int cnt = 1;
     for (const auto& expr : expressions) {
-        file << cnt << '.' << expr << std::endl;
-        cnt++;
+        file << cnt << '.' << expr.second << std::endl;  // 只写入答案部分
     }
 
     file.close();
@@ -420,12 +453,19 @@ bool writeExpressionsToFile(const std::vector<std::string>& expressions,
 
 void Formula_Generator(int count, int range) {
     ExpressionGenerator generator(range);
-    std::vector<std::string> expressions = generator.generateExpressions(count);
-    std::string filename = "Exercises.txt";
-    if (writeExpressionsToFile(expressions, filename)) {
+    auto expressions = generator.generateExpressions(count);
+    std::string expressionfile = "Exercises.txt";
+	std::string answerfile = "Answers.txt";
+    if (writeExpressionsToFile(expressions, expressionfile)) {
         std::cout << "Expressions successfully written to " << filename << std::endl;
     }
     else {
         std::cout << "Failed to write expressions to file." << std::endl;
 	}
+    if (writeAnswersToFile(expressions, answerfile)) {
+        std::cout << "Answers successfully written to " << filename << std::endl;
+    }
+    else {
+        std::cout << "Failed to write answers to file." << std::endl;
+    }
 }
