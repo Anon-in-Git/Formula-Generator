@@ -54,8 +54,13 @@ void Fraction::toProperFraction() {
         return;
     }
 
+    while (numerator < 0) {
+		whole -= 1;
+		numerator += denominator;
+    }
+
     // 处理分子绝对值大于等于分母的情况
-    if (std::abs(numerator) >= denominator) {
+    if (numerator >= denominator) {
         int addToWhole = numerator / denominator;
         whole += addToWhole;
         numerator = std::abs(numerator) % denominator;
@@ -80,6 +85,7 @@ void Fraction::toProperFraction() {
             }
         }
     }
+    
 }
 
 std::string Fraction::toString() const {
