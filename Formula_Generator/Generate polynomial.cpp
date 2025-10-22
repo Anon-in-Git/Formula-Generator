@@ -54,43 +54,30 @@ void Fraction::toProperFraction() {
     }
 
     // 处理分子为负数的情况
-    if (numerator < 0) {
-        if (whole > 0) {
-            whole -= 1;
-            numerator += denominator;
-        }
-        else {
-            // 如果整数部分为0且分子为负，保持为假分数形式
-            // 或者可以转换为带负号的带分数
-        }
+    while (numerator < 0) {
+         whole -= 1;
+         numerator += denominator;
     }
 
-    // 确保分数部分总是正的
-    if (numerator < 0 && whole != 0) {
-        whole -= 1;
-        numerator += denominator;
-    }
 }
 
 std::string Fraction::toString() const {
     std::stringstream ss;
 
     // 处理负数的正确表示
-    if (whole < 0 || numerator < 0) {
-        if (whole == 0 && numerator < 0) {
-            // 纯负分数
-            ss << "-" << std::abs(numerator) << "/" << denominator;
-        }
-        else if (whole < 0 && numerator == 0) {
+    if (whole < 0 ) {
+        if ( numerator == 0) {
             // 负整数
             ss << whole;
         }
-        else if (whole < 0 && numerator > 0) {
+        else {
             // 负带分数 - 这是不正确的表示，需要转换
             // 将 -a'b/c 转换为 -(a'b/c)
-            int totalNumerator = std::abs(whole) * denominator + numerator;
-            ss << "-" << totalNumerator << "/" << denominator;
+            ss << "-" <<whole<<"'"<<numerator << "/" << denominator;
         }
+    }
+    else if (whole == 0) {
+		ss << "-" << numerator << "/" << denominator;
     }
     else {
         // 正数的正常表示
