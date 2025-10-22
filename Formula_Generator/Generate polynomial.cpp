@@ -1,4 +1,4 @@
-#include "Formula_Checker.h"
+#include "Formula_Generator.h"
 #include <random>
 #include <algorithm>
 #include <sstream>
@@ -413,4 +413,16 @@ bool writeExpressionsToFile(const std::vector<std::string>& expressions,
 
     file.close();
     return true;
+}
+
+void Formula_Generator(int count, int range) {
+    ExpressionGenerator generator(range);
+    std::vector<std::string> expressions = generator.generateExpressions(count);
+    std::string filename = "Exercises.txt";
+    if (writeExpressionsToFile(expressions, filename)) {
+        std::cout << "Expressions successfully written to " << filename << std::endl;
+    }
+    else {
+        std::cout << "Failed to write expressions to file." << std::endl;
+	}
 }

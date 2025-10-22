@@ -124,7 +124,7 @@ int main(int argc, char* argv[]) {
 
     if (n > 0 && maxn > 0)
         //可以在这里修改传入参数
-        FG::Formula_Generator();
+        Formula_Generator(n,maxn);
 
     if (!File_Ans.empty() && !File_Ex.empty())
         FC::Formula_Checker();
