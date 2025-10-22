@@ -14,7 +14,7 @@ Fraction::Fraction(int num, int den) : numerator(num), denominator(den), whole(0
     simplify();
 }
 
-Fraction::Fraction(int w, int num, int den) : numerator(num), denominator(den), whole(w) {
+Fraction::Fraction(int w, int num, int den) : whole(w), numerator(num), denominator(den) {
     if (denominator == 0) denominator = 1;
     toProperFraction();
     simplify();
@@ -48,26 +48,28 @@ void Fraction::toProperFraction() {
         denominator = -denominator;
     }
 
+    // 如果分子为0，直接返回
+    if (numerator == 0) {
+        return;
+    }
+
     // 处理分子绝对值大于等于分母的情况
     if (std::abs(numerator) >= denominator) {
         int addToWhole = numerator / denominator;
         whole += addToWhole;
         numerator = numerator % denominator;
 
-        // 确保分子为正
+        // 处理余数为负的情况
         if (numerator < 0) {
             numerator += denominator;
             whole -= 1;
         }
     }
 
-    // 如果整数部分为负，分子应该为正
-    if (whole < 0 && numerator > 0) {
-        // 这种情况需要调整
-        if (whole != 0) {
-            whole += 1;
-            numerator -= denominator;
-        }
+    // 如果整数部分不为0且分子为负，调整符号
+    if (whole != 0 && numerator < 0) {
+        whole -= 1;
+        numerator += denominator;
     }
 }
 
@@ -86,8 +88,7 @@ std::string Fraction::toString() const {
 
     // 处理整数的显示
     if (whole != 0) {
-        // 如果是负数，whole 已经是负数，我们显示其绝对值
-        ss << (isNegative ? -whole : whole);
+        ss << whole;
         if (numerator != 0) {
             ss << "'" << numerator << "/" << denominator;
         }
@@ -97,8 +98,7 @@ std::string Fraction::toString() const {
             ss << "0";
         }
         else {
-            // 如果是负数，显示负号，但分子显示绝对值
-            ss << (isNegative ? "-" : "") << std::abs(numerator) << "/" << denominator;
+            ss << numerator << "/" << denominator;
         }
     }
 
@@ -114,75 +114,86 @@ double Fraction::toDouble() const {
     return result;
 }
 
+// 使用更大的整数类型来防止溢出
 Fraction Fraction::operator+(const Fraction& other) const {
     // 转换为假分数进行计算
-    long long num1 = static_cast<long long>(whole) * denominator + numerator;
-    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
+    int64_t num1 = static_cast<int64_t>(whole) * denominator + numerator;
+    int64_t num2 = static_cast<int64_t>(other.whole) * other.denominator + other.numerator;
 
-    long long new_num = num1 * other.denominator + num2 * denominator;
-    long long new_den = static_cast<long long>(denominator) * other.denominator;
+    int64_t new_num = num1 * other.denominator + num2 * denominator;
+    int64_t new_den = static_cast<int64_t>(denominator) * other.denominator;
 
-    // 防止溢出
-    if (new_num > INT_MAX || new_num < INT_MIN || new_den > INT_MAX) {
-        return Fraction(0, 1); // 返回默认值
-    }
+    // 简化结果
+    int64_t gcd = computeGCD(std::abs(new_num), std::abs(new_den));
+    new_num /= gcd;
+    new_den /= gcd;
 
     return Fraction(static_cast<int>(new_num), static_cast<int>(new_den));
 }
 
 Fraction Fraction::operator-(const Fraction& other) const {
     // 转换为假分数进行计算
-    long long num1 = static_cast<long long>(whole) * denominator + numerator;
-    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
+    int64_t num1 = static_cast<int64_t>(whole) * denominator + numerator;
+    int64_t num2 = static_cast<int64_t>(other.whole) * other.denominator + other.numerator;
 
-    long long new_num = num1 * other.denominator - num2 * denominator;
-    long long new_den = static_cast<long long>(denominator) * other.denominator;
+    int64_t new_num = num1 * other.denominator - num2 * denominator;
+    int64_t new_den = static_cast<int64_t>(denominator) * other.denominator;
 
-    // 防止溢出
-    if (new_num > INT_MAX || new_num < INT_MIN || new_den > INT_MAX) {
-        return Fraction(0, 1); // 返回默认值
-    }
+    // 简化结果
+    int64_t gcd = computeGCD(std::abs(new_num), std::abs(new_den));
+    new_num /= gcd;
+    new_den /= gcd;
 
     return Fraction(static_cast<int>(new_num), static_cast<int>(new_den));
 }
 
 Fraction Fraction::operator*(const Fraction& other) const {
     // 转换为假分数进行计算
-    long long num1 = static_cast<long long>(whole) * denominator + numerator;
-    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
+    int64_t num1 = static_cast<int64_t>(whole) * denominator + numerator;
+    int64_t num2 = static_cast<int64_t>(other.whole) * other.denominator + other.numerator;
 
-    long long new_num = num1 * num2;
-    long long new_den = static_cast<long long>(denominator) * other.denominator;
+    int64_t new_num = num1 * num2;
+    int64_t new_den = static_cast<int64_t>(denominator) * other.denominator;
 
-    // 防止溢出
-    if (new_num > INT_MAX || new_num < INT_MIN || new_den > INT_MAX) {
-        return Fraction(0, 1); // 返回默认值
-    }
+    // 简化结果
+    int64_t gcd = computeGCD(std::abs(new_num), std::abs(new_den));
+    new_num /= gcd;
+    new_den /= gcd;
 
     return Fraction(static_cast<int>(new_num), static_cast<int>(new_den));
 }
 
 Fraction Fraction::operator/(const Fraction& other) const {
     // 转换为假分数进行计算
-    long long num1 = static_cast<long long>(whole) * denominator + numerator;
-    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
+    int64_t num1 = static_cast<int64_t>(whole) * denominator + numerator;
+    int64_t num2 = static_cast<int64_t>(other.whole) * other.denominator + other.numerator;
 
     if (num2 == 0) return Fraction(0, 1);
 
-    long long new_num = num1 * other.denominator;
-    long long new_den = static_cast<long long>(denominator) * num2;
+    int64_t new_num = num1 * other.denominator;
+    int64_t new_den = static_cast<int64_t>(denominator) * num2;
 
-    // 防止溢出
-    if (new_num > INT_MAX || new_num < INT_MIN || new_den > INT_MAX) {
-        return Fraction(0, 1); // 返回默认值
-    }
+    // 简化结果
+    int64_t gcd = computeGCD(std::abs(new_num), std::abs(new_den));
+    new_num /= gcd;
+    new_den /= gcd;
 
     return Fraction(static_cast<int>(new_num), static_cast<int>(new_den));
 }
 
+// 计算最大公约数的辅助函数
+int64_t Fraction::computeGCD(int64_t a, int64_t b) const {
+    while (b != 0) {
+        int64_t temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
 bool Fraction::operator==(const Fraction& other) const {
-    long long num1 = static_cast<long long>(whole) * denominator + numerator;
-    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
+    int64_t num1 = static_cast<int64_t>(whole) * denominator + numerator;
+    int64_t num2 = static_cast<int64_t>(other.whole) * other.denominator + other.numerator;
 
     return num1 * other.denominator == num2 * denominator;
 }
@@ -192,8 +203,8 @@ bool Fraction::operator!=(const Fraction& other) const {
 }
 
 bool Fraction::operator<(const Fraction& other) const {
-    long long num1 = static_cast<long long>(whole) * denominator + numerator;
-    long long num2 = static_cast<long long>(other.whole) * other.denominator + other.numerator;
+    int64_t num1 = static_cast<int64_t>(whole) * denominator + numerator;
+    int64_t num2 = static_cast<int64_t>(other.whole) * other.denominator + other.numerator;
 
     return num1 * other.denominator < num2 * denominator;
 }
