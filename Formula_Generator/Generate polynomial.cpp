@@ -408,8 +408,10 @@ bool writeExpressionsToFile(const std::vector<std::string>& expressions,
         return false;
     }
 
+    int cnt = 1;
     for (const auto& expr : expressions) {
-        file << expr << std::endl;
+        file << cnt << '.' << expr << std::endl;
+        cnt++;
     }
 
     file.close();
