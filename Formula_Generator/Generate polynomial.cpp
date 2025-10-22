@@ -4,19 +4,20 @@
 #include <sstream>
 #include <cmath>
 #include <fstream>
+#include <iostream>
 
 // ==================== Fraction 类实现 ====================
 
 Fraction::Fraction(int num, int den) : numerator(num), denominator(den), whole(0) {
     if (denominator == 0) denominator = 1;
-    toProperFraction();
     simplify();
+    toProperFraction();  // 先简化再转换为真分数
 }
 
 Fraction::Fraction(int w, int num, int den) : numerator(num), denominator(den), whole(w) {
     if (denominator == 0) denominator = 1;
-    toProperFraction();
     simplify();
+    toProperFraction();  // 先简化再转换为真分数
 }
 
 void Fraction::simplify() {
@@ -47,61 +48,79 @@ void Fraction::toProperFraction() {
         denominator = -denominator;
     }
 
-    // 处理分子大于等于分母的情况
-    if (numerator >= denominator) {
-        whole += numerator / denominator;
-        numerator %= denominator;
+    // 如果分子为0，直接返回
+    if (numerator == 0) {
+        whole = 0;
+        return;
     }
 
-    // 处理分子为负数的情况
-    while (numerator < 0) {
-         whole -= 1;
-         numerator += denominator;
+    // 处理分子绝对值大于等于分母的情况
+    if (std::abs(numerator) >= denominator) {
+        int addToWhole = numerator / denominator;
+        whole += addToWhole;
+        numerator = std::abs(numerator) % denominator;
+
+        // 如果分子为0，重置分母为1
+        if (numerator == 0) {
+            denominator = 1;
+        }
     }
 
+    // 确保整数部分和分数部分的符号一致
+    if (whole != 0 && numerator != 0) {
+        if ((whole > 0 && numerator < 0) || (whole < 0 && numerator > 0)) {
+            // 这种情况不应该出现，如果出现则调整
+            if (whole > 0) {
+                whole -= 1;
+                numerator += denominator;
+            }
+            else {
+                whole += 1;
+                numerator -= denominator;
+            }
+        }
+    }
 }
 
 std::string Fraction::toString() const {
     std::stringstream ss;
 
-    // 处理负数的正确表示
-    if (whole < 0 ) {
-        if ( numerator == 0) {
-            // 负整数
-            ss << whole;
-        }
-        else {
-            // 负带分数 - 这是不正确的表示，需要转换
-            // 将 -a'b/c 转换为 -(a'b/c)
-            ss << "-" <<whole<<"'"<<numerator << "/" << denominator;
-        }
+    // 计算实际的值（考虑整数部分）
+    double actualValue = toDouble();
+
+    // 如果是负数，需要在两边加括号
+    bool isNegative = (actualValue < 0);
+
+    if (isNegative) {
+        ss << "(";
     }
-    else if (whole == 0) {
-		ss << "-" << numerator << "/" << denominator;
+
+    // 处理整数的显示
+    if (whole != 0) {
+        ss << std::abs(whole);  // 显示绝对值的整数部分
+        if (numerator != 0) {
+            ss << "'" << numerator << "/" << denominator;
+        }
     }
     else {
-        // 正数的正常表示
-        if (whole != 0) {
-            ss << whole;
-            if (numerator != 0) {
-                ss << "'" << numerator << "/" << denominator;
-            }
+        if (numerator == 0) {
+            ss << "0";
         }
         else {
-            if (numerator == 0) {
-                ss << "0";
-            }
-            else {
-                ss << numerator << "/" << denominator;
-            }
+            ss << std::abs(numerator) << "/" << denominator;
         }
+    }
+
+    if (isNegative) {
+        ss << ")";
     }
 
     return ss.str();
 }
 
 double Fraction::toDouble() const {
-    return whole + static_cast<double>(numerator) / denominator;
+    double result = whole + static_cast<double>(numerator) / denominator;
+    return result;
 }
 
 Fraction Fraction::operator+(const Fraction& other) const {
@@ -193,6 +212,8 @@ ExpressionNode::~ExpressionNode() {
 
 std::string ExpressionNode::toString() const {
     if (type == NodeType::NUMBER) {
+        // 对于数字节点，直接返回其字符串表示
+        // Fraction::toString() 已经会为负数添加括号
         return value.toString();
     }
 
@@ -208,12 +229,22 @@ std::string ExpressionNode::toString() const {
         (right->value.toString().find('/') != std::string::npos ||
             right->value.toString().find('\'') != std::string::npos));
 
-    // 如果当前是除法运算符，且操作数是分数，需要加括号
-    if (op == '/' && leftIsFraction) {
-        leftStr = "(" + leftStr + ")";
+    // 如果操作数是负数（以负号开头），需要加括号
+    bool leftIsNegative = (left->type == NodeType::NUMBER && left->value.toDouble() < 0);
+    bool rightIsNegative = (right->type == NodeType::NUMBER && right->value.toDouble() < 0);
+
+    // 如果当前是除法运算符，且操作数是分数或负数，需要加括号
+    if (op == '/' && (leftIsFraction || leftIsNegative)) {
+        // 检查是否已经有括号（负数分数在 Fraction::toString 中已经加了括号）
+        if (leftStr[0] != '(') {
+            leftStr = "(" + leftStr + ")";
+        }
     }
-    if (op == '/' && rightIsFraction) {
-        rightStr = "(" + rightStr + ")";
+
+    if (op == '/' && (rightIsFraction || rightIsNegative)) {
+        if (rightStr[0] != '(') {
+            rightStr = "(" + rightStr + ")";
+        }
     }
 
     // 根据运算符优先级决定是否加括号
@@ -468,10 +499,10 @@ bool writeExercisesToFile(const std::vector<std::pair<std::string, std::string>>
     if (!file.is_open()) {
         return false;
     }
-    
+
     int cnt = 1;
     for (const auto& expr : expressions) {
-        file<< cnt << '.' << expr.first << std::endl;  // 只写入表达式部分
+        file << cnt << '.' << expr.first << std::endl;  // 只写入表达式部分
         cnt++;
     }
 
@@ -501,13 +532,13 @@ void Formula_Generator(int count, int range) {
     ExpressionGenerator generator(range);
     auto expressions = generator.generateExpressions(count);
     std::string expressionfile = "Exercises.txt";
-	std::string answerfile = "Answers.txt";
+    std::string answerfile = "Answers.txt";
     if (writeExercisesToFile(expressions, expressionfile)) {
         std::cout << "Expressions successfully written to " << expressionfile << std::endl;
     }
     else {
         std::cout << "Failed to write expressions to file." << std::endl;
-	}
+    }
     if (writeAnswersToFile(expressions, answerfile)) {
         std::cout << "Answers successfully written to " << answerfile << std::endl;
     }
